@@ -1,46 +1,54 @@
 @import './base.css';
 
 body {
+  min-width: 720px;
+  min-height: 540px;
+  background: #f7f8fc;
+}
+
+#app,
+.app-shell {
+  min-height: 100vh;
+}
+
+.auth-layout {
   display: flex;
+  min-height: 100vh;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  background-image: url('./wavy-lines.svg');
-  background-size: cover;
-  user-select: none;
+  gap: 72px;
+  padding: 48px;
+  background: radial-gradient(circle at 15% 20%, #dbeafe 0, transparent 28%), radial-gradient(circle at 90% 85%, #e9d5ff 0, transparent 27%), #f7f8fc;
 }
 
-code {
-  font-weight: 600;
-  padding: 3px 5px;
-  border-radius: 2px;
-  background-color: var(--color-background-mute);
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    SF Mono,
-    Menlo,
-    Consolas,
-    Liberation Mono,
-    monospace;
-  font-size: 85%;
-}
+.brand-panel { width: 370px; color: #172554; }
+.brand-mark { display: grid; width: 60px; height: 60px; place-items: center; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #2563eb, #7c3aed); font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+.eyebrow { margin: 28px 0 10px; color: #6366f1; font-size: 12px; font-weight: 700; letter-spacing: 1.8px; }
+.brand-panel h1, .search-hero h1 { margin: 0; font-size: 38px; line-height: 1.25; font-weight: 750; }
+.brand-copy { max-width: 310px; margin-top: 18px; color: #64748b; font-size: 16px; }
+.auth-card { width: 410px; padding: 8px 14px 22px; border: 1px solid #e5e7eb; border-radius: 20px; }
+.auth-heading { margin: 24px 0; }
+.auth-heading h2 { margin: 0 0 8px; color: #1e293b; font-size: 24px; font-weight: 700; }
+.auth-heading p { margin: 0; color: #94a3b8; font-size: 14px; }
+.submit-button, .guest-button { width: 100%; }
+.guest-button { color: #475569; }
 
-#app {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  margin-bottom: 80px;
-}
+.home-layout { min-height: 100vh; background: #f8fafc; }
+.home-header { display: flex; height: 70px; align-items: center; justify-content: space-between; padding: 0 52px; border-bottom: 1px solid #e2e8f0; background: #fff; }
+.home-brand { color: #0f172a; font-size: 18px; font-weight: 750; }
+.home-brand span { display: inline-grid; width: 30px; height: 30px; place-items: center; margin-right: 8px; border-radius: 9px; color: #fff; background: #2563eb; font-size: 12px; }
+.user-actions { display: flex; align-items: center; gap: 12px; }
+.user-actions .el-icon { margin-right: 4px; }
+.search-hero { width: min(720px, calc(100% - 64px)); margin: 0 auto; padding-top: 18vh; text-align: center; }
+.search-hero .eyebrow { margin: 0 0 10px; }
+.search-hero h1 { color: #0f172a; font-size: 34px; }
+.search-hero > p:not(.eyebrow) { margin: 12px 0 30px; color: #64748b; }
+.search-input { box-shadow: 0 12px 30px rgba(15, 23, 42, .08); }
+.search-input .el-input__wrapper { padding-left: 16px; }
 
-.logo {
-  margin-bottom: 20px;
-  -webkit-user-drag: none;
-  height: 128px;
-  width: 128px;
-  will-change: filter;
-  transition: filter 300ms;
+@media (max-width: 860px) {
+  .auth-layout { gap: 32px; padding: 32px; }
+  .brand-panel { width: 300px; }
 }
 
 .logo:hover {
