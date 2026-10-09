@@ -1,7 +1,65 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, dialog, ipcMain } from 'electron'
+import { execFile } from 'child_process'
+import { mkdir } from 'fs/promises'
+import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+
+const execFileAsync = promisify(execFile)
+const albumIdPattern = /^[1-9]\d{0,11}$/
+const projectUrl = 'https://github.com/hei29/jm-electron'
+
+interface AppSettings {
+  downloadDirectory: string
+}
+
+const getSettingsPath = (): string => join(app.getPath('userData'), 'settings.json')
+const getDefaultSettings = (): AppSettings => ({
+  downloadDirectory: join(app.getAppPath(), 'downloads')
+})
+
+const loadSettings = (): AppSettings => {
+  try {
+    const raw = readFileSync(getSettingsPath(), 'utf-8')
+    return { ...getDefaultSettings(), ...(JSON.parse(raw) as Partial<AppSettings>) }
+  } catch {
+    return getDefaultSettings()
+  }
+}
+
+const saveSettings = (settings: AppSettings): void => {
+  writeFileSync(getSettingsPath(), JSON.stringify(settings, null, 2), 'utf-8')
+}
+
+const getDownloadDirectory = (): string => loadSettings().downloadDirectory
+
+const downloadAlbum = async (albumId: string): Promise<{ success: boolean; output: string }> => {
+  if (!albumIdPattern.test(albumId)) {
+    return { success: false, output: '请输入有效的本子 ID（仅限数字）。' }
+  }
+
+  try {
+    const command = process.platform === 'win32' ? 'jmcomic.exe' : 'jmcomic'
+    const downloadDirectory = getDownloadDirectory()
+    await mkdir(downloadDirectory, { recursive: true })
+    const { stdout, stderr } = await execFileAsync(command, [albumId], {
+      cwd: downloadDirectory,
+      windowsHide: true,
+      timeout: 30 * 60 * 1000,
+      maxBuffer: 10 * 1024 * 1024
+    })
+
+    return { success: true, output: `${stdout || stderr || '下载任务已完成。'}\n保存目录：${downloadDirectory}` }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '无法启动 jmcomic 命令。'
+    return {
+      success: false,
+      output: `${message}\n请先按 docs/JMCOMIC.md 中的说明安装 Python 依赖，并确认 jmcomic 已加入 PATH。`
+    }
+  }
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -16,6 +74,11 @@ function createWindow(): void {
       sandbox: false
     }
   })
+  // 只在开发环境打开 DevTools
+  if (process.env.NODE_ENV === 'development') {
+    mainWindow.webContents.openDevTools(); 
+    // 或者指定位置：win.webContents.openDevTools({ mode: 'bottom' });
+  }
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
@@ -51,6 +114,28 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+  ipcMain.handle('jmcomic:download-album', (_event, albumId: string) => downloadAlbum(albumId))
+  ipcMain.handle('jmcomic:open-download-directory', () => shell.openPath(getDownloadDirectory()))
+  ipcMain.handle('settings:get', () => loadSettings())
+  ipcMain.handle('settings:set-download-directory', (_event, downloadDirectory: string) => {
+    const settings = loadSettings()
+    settings.downloadDirectory = downloadDirectory.trim()
+    saveSettings(settings)
+    return settings
+  })
+  ipcMain.handle('settings:choose-download-directory', async () => {
+    const result = await dialog.showOpenDialog({
+      title: '选择下载目录',
+      defaultPath: getDownloadDirectory(),
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    const settings = loadSettings()
+    settings.downloadDirectory = result.filePaths[0]
+    saveSettings(settings)
+    return settings.downloadDirectory
+  })
+  ipcMain.handle('app:open-project', () => shell.openExternal(projectUrl))
 
   createWindow()
 
