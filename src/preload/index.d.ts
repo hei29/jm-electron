@@ -10,9 +10,21 @@ interface JmcomicAPI {
   openDownloadDirectory: () => Promise<string>
 }
 
+interface AppSettings {
+  downloadDirectory: string
+}
+
+interface SettingsAPI {
+  getSettings: () => Promise<AppSettings>
+  setDownloadDirectory: (downloadDirectory: string) => Promise<AppSettings>
+  chooseDownloadDirectory: () => Promise<string | null>
+  openProject: () => Promise<void>
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
     jmcomicApi: JmcomicAPI
+    settingsApi: SettingsAPI
   }
 }

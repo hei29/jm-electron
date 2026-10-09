@@ -6,6 +6,8 @@
         <el-tag type="info" effect="plain">
           <el-icon><UserFilled /></el-icon>{{ authStore.displayName }}
         </el-tag>
+        <el-button text @click="openSettings">设置</el-button>
+        <el-button text @click="openProject">帮助</el-button>
         <el-button text @click="logout">退出</el-button>
       </div>
     </header>
@@ -90,6 +92,14 @@ const openDownloadDirectory = async (): Promise<void> => {
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '无法打开下载目录。')
   }
+}
+
+const openSettings = async (): Promise<void> => {
+  await router.push({ name: 'settings' })
+}
+
+const openProject = async (): Promise<void> => {
+  await window.settingsApi.openProject()
 }
 
 const logout = async (): Promise<void> => {

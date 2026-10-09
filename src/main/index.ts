@@ -1,6 +1,7 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, dialog, ipcMain } from 'electron'
 import { execFile } from 'child_process'
 import { mkdir } from 'fs/promises'
+import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { promisify } from 'util'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -8,7 +9,31 @@ import icon from '../../resources/icon.png?asset'
 
 const execFileAsync = promisify(execFile)
 const albumIdPattern = /^[1-9]\d{0,11}$/
-const getDownloadDirectory = (): string => join(app.getAppPath(), 'downloads')
+const projectUrl = 'https://github.com/hei29/jm-electron'
+
+interface AppSettings {
+  downloadDirectory: string
+}
+
+const getSettingsPath = (): string => join(app.getPath('userData'), 'settings.json')
+const getDefaultSettings = (): AppSettings => ({
+  downloadDirectory: join(app.getAppPath(), 'downloads')
+})
+
+const loadSettings = (): AppSettings => {
+  try {
+    const raw = readFileSync(getSettingsPath(), 'utf-8')
+    return { ...getDefaultSettings(), ...(JSON.parse(raw) as Partial<AppSettings>) }
+  } catch {
+    return getDefaultSettings()
+  }
+}
+
+const saveSettings = (settings: AppSettings): void => {
+  writeFileSync(getSettingsPath(), JSON.stringify(settings, null, 2), 'utf-8')
+}
+
+const getDownloadDirectory = (): string => loadSettings().downloadDirectory
 
 const downloadAlbum = async (albumId: string): Promise<{ success: boolean; output: string }> => {
   if (!albumIdPattern.test(albumId)) {
@@ -91,6 +116,26 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
   ipcMain.handle('jmcomic:download-album', (_event, albumId: string) => downloadAlbum(albumId))
   ipcMain.handle('jmcomic:open-download-directory', () => shell.openPath(getDownloadDirectory()))
+  ipcMain.handle('settings:get', () => loadSettings())
+  ipcMain.handle('settings:set-download-directory', (_event, downloadDirectory: string) => {
+    const settings = loadSettings()
+    settings.downloadDirectory = downloadDirectory.trim()
+    saveSettings(settings)
+    return settings
+  })
+  ipcMain.handle('settings:choose-download-directory', async () => {
+    const result = await dialog.showOpenDialog({
+      title: '选择下载目录',
+      defaultPath: getDownloadDirectory(),
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    const settings = loadSettings()
+    settings.downloadDirectory = result.filePaths[0]
+    saveSettings(settings)
+    return settings.downloadDirectory
+  })
+  ipcMain.handle('app:open-project', () => shell.openExternal(projectUrl))
 
   createWindow()
 
